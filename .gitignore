@@ -261,3 +261,8 @@ __pycache__/
 *.pyc
 
 
+*.cs
+/AssignmentCode/App.config
+/AssignmentCode/AssignmentCode.csproj
+/AssignmentCode/packages.config
+/AssignmentCode.sln

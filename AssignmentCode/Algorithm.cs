@@ -1,3 +1,5 @@
+using RDotNet;
+using RDotNet.NativeLibrary;
 using System;
 using System.Collections.Generic;
 using System.Linq;
@@ -8,29 +10,44 @@ namespace AssignmentCode
 {
     class Algorithm
     {
+        static List<int[]> instances = new List<int[]>();
+        static Random rand = new Random();
+        static int instanceSize = 20;
+        static int sampleSize = 50;
+
         static void Main(string[] args)
         {
-            Console.WriteLine("vul een reeks nummber in waardes {0,1}");
+            Console.WriteLine("Lets start");
 
-            int[] conjunction = new int[] { -1 };
+            int[] conjunction = SampleLearningHypothesis();
 
-            bool b = true;
-            while (b)
-            {
-                string readedLine = Console.ReadLine();
-                if (readedLine.Equals("q"))
-                    break;
+            foreach (int[] instance in instances)
+                PrintInstance(instance);
 
-                int[] newData = readedLine.Select(x => (int)char.GetNumericValue(x)).ToArray();
-                conjunction = CreateHypothesis(conjunction, newData);
+            Console.WriteLine("------------------------------------ Hd --");
+            PrintInstance(conjunction);
 
-                Console.Write("Conjunctions: ");
-                foreach (int i in conjunction)
-                    Console.Write(i == -1 ? "-" : i.ToString());
-                Console.WriteLine();
-            }
+
+            //REngine.SetEnvironmentVariables("C:/Program Files/R/R-3.4.3/bin/i386", "C:/Program Files/R/R-3.4.3");
+            //REngine engine = REngine.GetInstance();
+            //engine.Initialize();
+
+            //engine.Evaluate("x <- rbinom(20,1,0.5)");
+            //var df = engine.Evaluate("x <- rbinom(20,1,0.5)").AsDataFrame();
 
             Console.ReadKey();
+        }
+
+        private static int[] SampleLearningHypothesis()
+        {
+            int[] hype = new int[] { -1 };
+
+            for (int i = 0; i < sampleSize; i++)
+            {
+                int[] instance = GenerateInstance();
+                hype = CreateHypothesis(hype, instance);
+            }
+            return hype;
         }
 
 
@@ -40,18 +57,46 @@ namespace AssignmentCode
             int[] originalCH = new int[ch.Length];
             ch.CopyTo(originalCH, 0);
 
-            if (ch.All(x => x == -1))
-                ch = nd;
+            int[] ch2 = new int[ch.Length];
+            ch.CopyTo(ch2, 0);
+
+            if (ch2.All(x => x == -1))
+                ch2 = nd;
             else
-                for (int i = 0; i < ch.Length; i++)
+                for (int i = 0; i < ch2.Length; i++)
                 {
-                    if (ch[i] == -1)
+                    if (ch2[i] == -1)
                         continue;
-                    else if (ch[i] != nd[i])
-                        ch[i] = -1;
+                    else if (ch2[i] != nd[i])
+                        ch2[i] = -1;
                 }
-            return (ch.Any(x => x != -1)) ? ch : originalCH ;
+            return (ch2.Any(x => x != -1)) ? ch2 : originalCH ;
         }
 
+        private static int[] GenerateInstance()
+        {
+            int[] instance = new int[instanceSize];
+            
+            for (int i = 0; i < instanceSize; i++)
+            {
+                int rndmNr = rand.Next(0, 2);
+                if (rndmNr > 1)
+                    rndmNr = 1;
+
+                instance[i] = rndmNr;
+            }
+
+            instances.Add(instance);
+            return instance;
+        }
+
+
+        private static void PrintInstance(int[] instance)
+        {
+            Console.Write("[");
+            foreach (int i in instance)
+                Console.Write(i == -1 ? "-" : i.ToString());
+            Console.WriteLine("]");
+        }
     }
 }
