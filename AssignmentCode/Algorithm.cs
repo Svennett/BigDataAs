@@ -1,98 +1,125 @@
-using RDotNet;
-using RDotNet.NativeLibrary;
 using System;
 using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 
-namespace AssignmentCode
-{
-    class Algorithm
-    {
-        static List<int[]> instances = new List<int[]>();
+namespace AssignmentCode {
+    struct Hypothesis {
+        public int[] conjunction;
+        public int num_literals;
+
+        public Hypothesis(int[] conjunction, int num_literals) {
+            this.conjunction = conjunction;
+            this.num_literals = num_literals;
+        }
+    }
+
+    class Algorithm {
         static Random rand = new Random();
         static int instanceSize = 20;
-        static int sampleSize = 50;
 
-        static void Main(string[] args)
-        {
-            Console.WriteLine("Lets start");
+        static void Main(string[] args) {
+            int[] sample_sizes = { 50, 100, 150, 200, 210 };
+            int idx = 0;
 
-            int[] conjunction = SampleLearningHypothesis();
+            double smaller = 0;
+            double equal = 0;
+            double total_val = 0;
 
-            foreach (int[] instance in instances)
-                PrintInstance(instance);
+            foreach (int sample_size in sample_sizes) {
+                while (idx < 10000) {
+                    List<int[]> sample = generate_sample(sample_size);
+                    List<int[]> positive = label_sample(sample);
 
-            Console.WriteLine("------------------------------------ Hd --");
-            PrintInstance(conjunction);
+                    if (positive.Count > 0) {
+                        Hypothesis hypothesis = learn_hypothesis(positive);
+                        double true_loss = 1 - Math.Pow(0.5, hypothesis.num_literals) - (1 - Math.Pow(0.5, 4));
 
+                        if (true_loss <= 0.05)
+                            smaller++;
 
-            //REngine.SetEnvironmentVariables("C:/Program Files/R/R-3.4.3/bin/i386", "C:/Program Files/R/R-3.4.3");
-            //REngine engine = REngine.GetInstance();
-            //engine.Initialize();
+                        if (true_loss == 0)
+                            equal++;
 
-            //engine.Evaluate("x <- rbinom(20,1,0.5)");
-            //var df = engine.Evaluate("x <- rbinom(20,1,0.5)").AsDataFrame();
+                        total_val += true_loss;
+                        idx++;
+                    }
+                }
+
+                Console.WriteLine("m = " + sample_size + " | " + smaller / 10000 + " | " + equal / 10000 + " | " + total_val / 10000);
+
+                idx = 0;
+                smaller = 0;
+                equal = 0;
+                total_val = 0;
+            }
 
             Console.ReadKey();
         }
 
-        private static int[] SampleLearningHypothesis()
-        {
-            int[] hype = new int[] { -1 };
+        private static List<int[]> generate_sample(int sampleSize) {
+            List<int[]> sample = new List<int[]>(sampleSize);
+            int[] instance;
 
-            for (int i = 0; i < sampleSize; i++)
-            {
-                int[] instance = GenerateInstance();
-                hype = CreateHypothesis(hype, instance);
+            for (int idx = 0; idx < sampleSize; idx++) {
+                instance = new int[instanceSize];
+
+                for (int idy = 0; idy < instanceSize; idy++)
+                    instance[idy] = rand.Next(0, 2);
+
+                sample.Add(instance);
             }
-            return hype;
+
+            return sample;
         }
 
+        private static List<int[]> label_sample(List<int[]> sample) {
+            List<int[]> positive = new List<int[]>(sample.Count);
 
+            foreach (int[] instance in sample) {
+                if (instance[1] == 0)
+                    continue;
 
-        private static int[] CreateHypothesis(int[] ch, int[] nd)
-        {
-            int[] originalCH = new int[ch.Length];
-            ch.CopyTo(originalCH, 0);
+                if (instance[3] == 1)
+                    continue;
 
-            int[] ch2 = new int[ch.Length];
-            ch.CopyTo(ch2, 0);
+                if (instance[5] == 0)
+                    continue;
 
-            if (ch2.All(x => x == -1))
-                ch2 = nd;
-            else
-                for (int i = 0; i < ch2.Length; i++)
-                {
-                    if (ch2[i] == -1)
+                if (instance[7] == 0)
+                    continue;
+
+                positive.Add(instance);
+            }
+
+            return positive;
+        }
+
+        private static Hypothesis learn_hypothesis(List<int[]> positive) {
+            int[] hypothesis = new int[instanceSize];
+            positive[0].CopyTo(hypothesis, 0);
+
+            int num_literals = 20;
+
+            for (int idx = 1; idx < positive.Count; idx++) {
+                int[] instance = positive[idx];
+
+                for (int idy = 0; idy < instanceSize; idy++) {
+                    if (hypothesis[idy] == -1) {
                         continue;
-                    else if (ch2[i] != nd[i])
-                        ch2[i] = -1;
+                    }
+                    else if (hypothesis[idy] != instance[idy]) {
+                        hypothesis[idy] = -1;
+                        num_literals--;
+                    }
                 }
-            return (ch2.Any(x => x != -1)) ? ch2 : originalCH ;
-        }
-
-        private static int[] GenerateInstance()
-        {
-            int[] instance = new int[instanceSize];
-            
-            for (int i = 0; i < instanceSize; i++)
-            {
-                int rndmNr = rand.Next(0, 2);
-                if (rndmNr > 1)
-                    rndmNr = 1;
-
-                instance[i] = rndmNr;
             }
 
-            instances.Add(instance);
-            return instance;
+            return new Hypothesis(hypothesis, num_literals);
         }
 
-
-        private static void PrintInstance(int[] instance)
-        {
+        private static void PrintInstance(int[] instance) {
             Console.Write("[");
             foreach (int i in instance)
                 Console.Write(i == -1 ? "-" : i.ToString());

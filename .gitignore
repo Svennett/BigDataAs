@@ -266,3 +266,5 @@ __pycache__/
 /AssignmentCode/AssignmentCode.csproj
 /AssignmentCode/packages.config
 /AssignmentCode.sln
+*.sln
+*.gitattributes
